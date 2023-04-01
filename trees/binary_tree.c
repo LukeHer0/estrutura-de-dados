@@ -61,25 +61,14 @@ void display(Arvore *no)
     
 }
 
-void loopscan(Arvore *no)
-{
-  int num;
-  scanf("%d", &num);
-  if (num == -10)
-  {
-        display(no);
-        return;
-  }
-  else
-  {
-      no = inserir (no, num);
-      loopscan(no);
-  }
-}
-
 int main()
 {
   Arvore *no = NULL;
-  loopscan(no);
+  int num;
+  while(scanf("%d", &num) != EOF)
+  {
+    no = inserir(no, num);
+  }
+  display(no);
   return 0;
 }
