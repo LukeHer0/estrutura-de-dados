@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#define MAX_SIZE 6
+
 void bubble(int *vetor, int tamanho)
 {
     for (int j = 0; j < tamanho; j++)
@@ -18,13 +20,13 @@ void bubble(int *vetor, int tamanho)
 
 int main()
 {
-    int vetor[6];
-    for (int i = 0; i < 6; i++)
+    int vetor[MAX_SIZE];
+    for (int i = 0; i < MAX_SIZE; i++)
     {
         scanf("%d", &vetor[i]);
     }
-    bubble(vetor, 6);
-    for (int j = 0; j < 6; j++)
+    bubble(vetor, MAX_SIZE);
+    for (int j = 0; j < MAX_SIZE; j++)
     {
         printf("%d ", vetor[j]);
     }
