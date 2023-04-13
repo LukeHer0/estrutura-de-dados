@@ -5,21 +5,19 @@
 
 void selection(int *vetor, int tamanho)
 {
-    int menor = INT_MAX;
-    int k;
     for(int i = 0; i < tamanho; i++)
     {
+        int menor = i;
         for(int j = i; j < tamanho; j++)
         {
-            if(vetor[j] < menor)
+            if(vetor[j] < vetor[menor])
             {
-                menor = vetor[j];
-                k = j;
+                menor = j;
             }
         }
-        vetor[k] = vetor[i];
-        vetor[i] = menor;
-        menor = INT_MAX;
+        int t = vetor[i];
+        vetor[i] = vetor[menor];
+        vetor[menor] = t;
     }
 }
 
