@@ -4,7 +4,7 @@
 
 #define ALPHABET_SIZE 26
 #define NAME_SIZE 40
-#define QUEUE 26
+#define QUEUE 104
 
 void valorando(char fila[][NAME_SIZE])
 {
