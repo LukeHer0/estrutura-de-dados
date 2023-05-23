@@ -7,7 +7,6 @@
 #define corredores 3 //3 corredores 
 #define elevadores_per_cor 5 //5 elevadores por corredor
 #define tot_elevadores (corredores * elevadores_per_cor) // 15 elevadores no total
-#define horizontal 10 //o elevador pode mudar de corredor a cada 10 andares
 
 typedef struct Elevador
 {
@@ -70,7 +69,19 @@ int verificador(int andar, int corredor)
     return 1;
 }
 
-Elevador *menor_distancia (Elevador * elevadores, int andar, int corredor)
+int tem_elevador(Elevador * elevadores, int andar, int corredor)
+{
+    for (int i = 0; i < tot_elevadores; i++)
+    {
+        if(elevadores[i].andar == andar && elevadores[i].corredor == corredor)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+Elevador * menor_distancia (Elevador * elevadores, int andar, int corredor)
 {
     int menor = INT_MAX;
     int distancia;
@@ -91,33 +102,73 @@ Elevador *menor_distancia (Elevador * elevadores, int andar, int corredor)
     return escolhido;
 }
 
+Elevador * destino(Elevador * eleva, int index, int andar, int corredor)
+{
+    int distancia;
+    Elevador * novo;
+    distancia = abs(andar - eleva[index].andar) + abs(corredor - eleva[index].corredor) + ((int)(abs(andar - eleva[index].andar)/20) * 2);
+    novo = &eleva[index];
+    novo->andar = andar;
+    novo->corredor = corredor;
+    novo->distancia = distancia;
+    return novo;
+}
+
 int main()
 {
     Elevador elevadores[tot_elevadores];
     inicializar(elevadores);
     printf("Este é o prédio de 300 andares. Cada letra simboliza um ID de um elevador. Eis o prédio:\n");
-    //printador(elevadores);
+    printador(elevadores);
     int andar = 0, corredor = 0;
     while(andar >= 0 && corredor >= 0)
     {
         printf("Selecione o andar e o corredor que desejam chamar um elevador, respectivamente, caso queira finalizar o programa, escreva um dos dois como números negativos: ");
         scanf("%d %d", &andar, &corredor);
-        if (verificador(andar, corredor))
+        if (andar >= 0 && corredor >= 0)
         {
-            printf("Procedimento bem sucedido! O Elevador %c percorreu %d m de distância para atender o chamado! Agora o prédio está assim:\n", menor_distancia(elevadores, andar, corredor)->id, menor_distancia(elevadores, andar, corredor)->distancia);
-            for(int j = 0; j < tot_elevadores; j++)
+            if (verificador(andar, corredor))
             {
-                if(elevadores[j].id == menor_distancia(elevadores, andar, corredor)->id)
+                printf("Procedimento bem sucedido! O Elevador %c percorreu %d m de distância para atender o chamado! Agora o prédio está assim:\n", menor_distancia(elevadores, andar, corredor)->id, menor_distancia(elevadores, andar, corredor)->distancia);
+                int k;
+                for(int j = 0; j < tot_elevadores; j++)
                 {
-                    elevadores[j].andar = menor_distancia(elevadores, andar, corredor)->andar;
-                    elevadores[j].corredor = menor_distancia(elevadores, andar, corredor)->corredor;
+                    if(elevadores[j].id == menor_distancia(elevadores, andar, corredor)->id)
+                    {
+                        k = j;
+                        elevadores[j].andar = menor_distancia(elevadores, andar, corredor)->andar;
+                        elevadores[j].corredor = menor_distancia(elevadores, andar, corredor)->corredor;
+                    }
+                }
+                printador(elevadores);
+                printf("Para onde deseja ir (andar e corredor novamente)? ");
+                while (tem_elevador(elevadores, andar, corredor))
+                {
+                    printf("Insira um local vazio: ");
+                    scanf("%d %d", &andar, &corredor);
+                }
+                if (andar >= 0 && corredor >= 0)
+                {
+                    if (verificador(andar, corredor))
+                    {
+                        printf("Procedimento bem sucedido! O Elevador %c percorreu %d m de distância para atender o chamado! Agora o prédio está assim:\n", elevadores[k].id, destino(elevadores, k, andar, corredor)->distancia);
+                        elevadores[k].andar = destino(elevadores, k, andar, corredor)->andar;
+                        elevadores[k].corredor = destino(elevadores, k, andar, corredor)->corredor;
+                        printador(elevadores);
+                    }
+                    else
+                    {
+                        printf("Algum dos números é inválido. Lembre-se que o prédio tem somente 300 andares(insira apenas um número entre 0 e 300 para o andar) e 3 corredores (insira um número entre 0 e 2 para o corredor). Por favor, tente novamente!\n"); 
+                    }
                 }
             }
+            else 
+            {
+                printf("Algum dos números é inválido. Lembre-se que o prédio tem somente 300 andares(insira apenas um número entre 0 e 300 para o andar) e 3 corredores (insira um número entre 0 e 2 para o corredor). Por favor, tente novamente!\n");
+            }
+            printf("Agora, o elevador irá retornar para sua posição inicial:\n");
+            inicializar(elevadores);
             printador(elevadores);
-        }
-        else 
-        {
-            printf("Algum dos números é inválido. Lembre-se que o prédio tem somente 300 andares(insira apenas um número entre 0 e 300 para o andar) e 3 corredores (insira um número entre 0 e 2 para o corredor). Por favor, tente novamente!\n");
         }
     }
     return 0;
