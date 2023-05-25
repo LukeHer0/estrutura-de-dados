@@ -31,7 +31,7 @@ void printador(Elevador * elevadores)
 {
     char predio [andares][corredores];
     int subtrator = 0;
-    for(int i = (andares - 1); i >= 0 ; i--)
+    for(int i = andares; i >= 0 ; i--)
     {
         for(int j = 0; j < corredores; j++)
         {
@@ -43,7 +43,7 @@ void printador(Elevador * elevadores)
                     subtrator = 1;
                 }
             }
-            j += subtrator;
+            //j += subtrator;
             subtrator = 0;
             if (j == corredores)
             {}
@@ -102,16 +102,99 @@ Elevador * menor_distancia (Elevador * elevadores, int andar, int corredor)
     return escolhido;
 }
 
-Elevador * destino(Elevador * eleva, int index, int andar, int corredor)
+Elevador * destino(Elevador * eleva, int index, int andar, int distancia, int novo, int chegou)
 {
-    int distancia;
-    Elevador * novo;
-    distancia = abs(andar - eleva[index].andar) + abs(corredor - eleva[index].corredor) + ((int)(abs(andar - eleva[index].andar)/20) * 2);
-    novo = &eleva[index];
-    novo->andar = andar;
-    novo->corredor = corredor;
-    novo->distancia = distancia;
-    return novo;
+    char opcao;
+    if(eleva[index].andar == andar || chegou == 1)
+    {
+        chegou = 1;
+        if (novo == -1 || eleva[index].andar == novo)
+        {
+            eleva[index].distancia = distancia;
+            eleva[index].andar = andar;
+            return eleva;
+        }
+        else if (eleva[index].andar > novo)
+        {
+            if(tem_elevador(eleva, eleva[index].andar - 1, eleva[index].corredor))
+            {
+                eleva[index].corredor = (eleva[index].corredor + 1) % 3;
+                distancia ++;
+            }
+            eleva[index].andar --;
+            distancia++;
+            printador(eleva);
+            printf("Insira algum caractere para prosseguir ");
+            scanf(" %c", &opcao);
+            destino(eleva, index, andar, distancia, novo, chegou);
+        }
+        else
+        {
+            if(tem_elevador(eleva, eleva[index].andar + 1, eleva[index].corredor))
+            {
+                eleva[index].corredor = (eleva[index].corredor + 1) % 3;
+                distancia ++;
+            }
+            eleva[index].andar ++;
+            distancia++;
+            printador(eleva);
+            printf("Insira algum caractere para prosseguir ");
+            scanf(" %c", &opcao);
+            destino(eleva, index, andar, distancia, novo, chegou);
+        }
+    }
+    else if (eleva[index].andar > andar)
+    {
+        if(tem_elevador(eleva, eleva[index].andar - 1, eleva[index].corredor))
+        {
+            eleva[index].corredor = (eleva[index].corredor + 1) % 3;
+            distancia ++;
+        }
+        eleva[index].andar --;
+        distancia++;
+        printador(eleva);
+        printf ("Tem outro chamado?(S/N) ");
+        scanf(" %c", &opcao);
+        switch(opcao)
+        {
+            case 'S':
+                printf("Para onde? ");
+                scanf("%d", &novo);
+                break;
+            case 'N':
+                break;
+            default:
+                printf("Opção inválida!\n");
+                break;
+        }
+        destino(eleva, index, andar, distancia, novo, chegou);
+    }
+    else
+    {
+        if(tem_elevador(eleva, eleva[index].andar + 1, eleva[index].corredor))
+        {
+            eleva[index].corredor = (eleva[index].corredor + 1) % 3;
+            distancia ++;
+        }
+        eleva[index].andar ++;
+        distancia++;
+        printador(eleva);
+        printf ("Tem outro chamado?(S/N) ");
+        scanf(" %c", &opcao);
+        switch(opcao)
+        {
+            case 'S':
+                printf("Para onde? ");
+                scanf("%d", &novo);
+                break;
+            case 'N':
+                break;
+            default:
+                printf("Opção inválida!\n");
+                break;
+        }
+        destino(eleva, index, andar, distancia, novo, chegou);
+    }
 }
 
 int main()
@@ -141,19 +224,18 @@ int main()
                     }
                 }
                 printador(elevadores);
-                printf("Para onde deseja ir (andar e corredor novamente)? ");
+                printf("Para que andar deseja ir? ");
                 while (tem_elevador(elevadores, andar, corredor))
                 {
-                    printf("Insira um local vazio: ");
-                    scanf("%d %d", &andar, &corredor);
+                    scanf("%d", &andar);
                 }
-                if (andar >= 0 && corredor >= 0)
+                if (andar >= 0)
                 {
                     if (verificador(andar, corredor))
                     {
-                        printf("Procedimento bem sucedido! O Elevador %c percorreu %d m de distância para atender o chamado! Agora o prédio está assim:\n", elevadores[k].id, destino(elevadores, k, andar, corredor)->distancia);
-                        elevadores[k].andar = destino(elevadores, k, andar, corredor)->andar;
-                        elevadores[k].corredor = destino(elevadores, k, andar, corredor)->corredor;
+                        printf("Procedimento bem sucedido! O Elevador %c percorreu %d m de distância para atender o chamado! Agora o prédio está assim:\n", elevadores[k].id, destino(elevadores, k, andar, 0, -1, 0)->distancia);
+                        elevadores[k].andar = destino(elevadores, k, andar, 0, -1, 0)->andar;
+                        elevadores[k].corredor = destino(elevadores, k, andar, 0, -1, 0)->corredor;
                         printador(elevadores);
                     }
                     else
