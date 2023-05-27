@@ -8,13 +8,22 @@
 #define elevadores_per_cor 5 //5 elevadores por corredor
 #define tot_elevadores (corredores * elevadores_per_cor) // 15 elevadores no total
 
+typedef enum Estado{
+    PARADO,
+    SUBINDO,
+    DESCENDO
+}Estado;
+
 typedef struct Elevador
 {
     char id;
     int andar;
     int corredor;
     int distancia;
+    Estado estado;
 }Elevador;
+
+void entrada(Elevador * elevadores);
 
 void inicializar (Elevador * elevadores)
 {
@@ -24,6 +33,7 @@ void inicializar (Elevador * elevadores)
         elevadores[i].andar = i * 20;
         elevadores[i].corredor = i % 3;
         elevadores[i].distancia = 0;
+        elevadores[i].estado = PARADO;
     }
 }
 
@@ -57,13 +67,9 @@ void printador(Elevador * elevadores)
     }
 }
 
-int verificador(int andar, int corredor)
+int verificador(int andar)
 {
-    if(andar > 300)
-    {
-        return 0;
-    }
-    if(corredor > 2)
+    if(andar < 0 || andar > 300)
     {
         return 0;
     }
@@ -82,14 +88,23 @@ int tem_elevador(Elevador * elevadores, int andar, int corredor)
     return 0;
 }
 
-Elevador * menor_distancia (Elevador * elevadores, int andar, int corredor)
+Elevador * menor_distancia (Elevador * elevadores, int andar)
 {
     int menor = INT_MAX;
     int distancia;
     Elevador * escolhido;
     for (int i = 0; i < tot_elevadores; i++)
     {
-        distancia = abs(andar - elevadores[i].andar) + abs(corredor - elevadores[i].corredor);
+        if(elevadores[i].andar < andar && elevadores[i].estado == DESCENDO)
+        {
+            i ++;
+        }
+        else if(elevadores[i].andar > andar && elevadores[i].estado == SUBINDO)
+        {
+            i++;
+        }
+
+        distancia = abs(andar - elevadores[i].andar);
 
         if(distancia < menor)
         {
@@ -97,117 +112,125 @@ Elevador * menor_distancia (Elevador * elevadores, int andar, int corredor)
             escolhido = &elevadores[i];
         }
     }
-    escolhido->andar = andar;
-    escolhido->corredor = corredor;
-    escolhido->distancia = menor;
     return escolhido;
 }
 
-Elevador * destino(Elevador * eleva, int index, int andar, int distancia, int novo, int chegou, int come)
+void chegada(Elevador elevadores[], int index, int destino, int distancia)
 {
-    char opcao;
-    if(eleva[index].andar == andar || chegou >= 1)
+    if (elevadores[index].andar == destino)
     {
-        chegou = 1;
-        if (novo == -1)
-        {
-            eleva[index].distancia = distancia;
-            eleva[index].andar = andar;
-            return eleva;
-        }
-        if (eleva[index].andar == novo && come == 1)
-        {
-            eleva[index].distancia = distancia;
-            eleva[index].andar = andar;
-            return eleva;
-        }
-        if (eleva[index].andar == novo && come != 1)
-        {
-            printf("Para qual andar? ");
-            scanf("%d", &novo);
-            come = 1;
-            destino(eleva, index, andar, distancia, novo, chegou, come);
-        }
-        else if (eleva[index].andar > novo)
-        {
-            if(tem_elevador(eleva, eleva[index].andar - 1, eleva[index].corredor))
-            {
-                eleva[index].corredor = (eleva[index].corredor + 1) % 3;
-                distancia ++;
-            }
-            eleva[index].andar --;
-            distancia++;
-            printador(eleva);
-            printf("Insira algum caractere para prosseguir ");
-            scanf(" %c", &opcao);
-            destino(eleva, index, andar, distancia, novo, chegou, come);
-        }
-        else
-        {
-            if(tem_elevador(eleva, eleva[index].andar + 1, eleva[index].corredor))
-            {
-                eleva[index].corredor = (eleva[index].corredor + 1) % 3;
-                distancia ++;
-            }
-            eleva[index].andar ++;
-            distancia++;
-            printador(eleva);
-            printf("Insira algum caractere para prosseguir ");
-            scanf(" %c", &opcao);
-            destino(eleva, index, andar, distancia, novo, chegou, come);
-        }
+        elevadores[index].estado = PARADO;
+        printf("Procedimento bem sucessido! O elevador %c percorreu %dm no total e chegou no andar %d!\n", elevadores[index].id, distancia, destino);
+        return;
     }
-    else if (eleva[index].andar > andar)
+    if(tem_elevador(elevadores, elevadores[index].andar + 1, elevadores[index].corredor) && elevadores[index].estado == SUBINDO)
     {
-        if(tem_elevador(eleva, eleva[index].andar - 1, eleva[index].corredor))
+        distancia ++;
+        if(elevadores[index].corredor != 2)
         {
-            eleva[index].corredor = (eleva[index].corredor + 1) % 3;
-            distancia ++;
+            elevadores[index].corredor = (elevadores[index].corredor + 1) % 3;
         }
-        eleva[index].andar --;
-        distancia++;
-        printador(eleva);
-        printf ("Tem outro chamado?(S/N) ");
-        scanf(" %c", &opcao);
-        switch(opcao)
+        else 
         {
-            case 'S':
-                printf("Para onde? ");
-                scanf("%d", &novo);
-                break;
-            case 'N':
-                break;
-            default:
-                printf("Opção inválida!\n");
-                break;
+            elevadores[index].corredor = elevadores[index].corredor - 1;
         }
-        destino(eleva, index, andar, distancia, novo, chegou, come);
+        entrada(elevadores);
+        chegada(elevadores, index, destino, distancia);
+    }
+    if(tem_elevador(elevadores, elevadores[index].andar - 1, elevadores[index].corredor) && elevadores[index].estado == DESCENDO)
+    {
+        distancia ++;
+        if(elevadores[index].corredor != 2)
+        {
+            elevadores[index].corredor = (elevadores[index].corredor + 1) % 3;
+        }
+        else 
+        {
+            elevadores[index].corredor = elevadores[index].corredor - 1;
+        }
+        entrada(elevadores);
+        chegada(elevadores, index, destino, distancia);
+    }
+    else if (elevadores[index].andar > destino)
+    {
+        elevadores[index].estado = DESCENDO;
+        elevadores[index].andar --;
+        distancia ++;
+        entrada(elevadores);
+        chegada(elevadores, index, destino, distancia);
+    }
+    else if (elevadores[index].andar < destino)
+    {
+        elevadores[index].estado = SUBINDO;
+        elevadores[index].andar ++;
+        distancia ++;
+        entrada(elevadores);
+        chegada(elevadores, index, destino, distancia);
+    }
+}
+
+void movimento(Elevador elevadores[], int index, int andar, int destino, int distancia)
+{
+    if (elevadores[index].andar == andar)
+    {
+        elevadores[index].distancia = distancia;
+        printf("Procedimento bem sucessido! O elevador %c percorreu %dm para atender o chamado no andar %d!\n", elevadores[index].id, distancia, andar);
+        chegada(elevadores, index, destino, elevadores[index].distancia);
+        return;
+    }
+    else if (elevadores[index].andar > andar)
+    {
+        elevadores[index].estado = DESCENDO;
+        elevadores[index].andar --;
+        distancia ++;
+        entrada(elevadores);
+        movimento(elevadores, index, andar, destino, distancia);
     }
     else
     {
-        if(tem_elevador(eleva, eleva[index].andar + 1, eleva[index].corredor))
-        {
-            eleva[index].corredor = (eleva[index].corredor + 1) % 3;
-            distancia ++;
+        elevadores[index].estado = SUBINDO;
+        elevadores[index].andar ++;
+        distancia ++;
+        entrada(elevadores);
+        movimento(elevadores, index, andar, destino, distancia);
+    }
+}
+
+void entrada(Elevador * elevadores)
+{
+    char opcao;
+    printf("Tem chamado?(S/N) ");
+    scanf(" %c", &opcao);
+    int andar = -1, destino = -1, k;
+    switch(opcao)
+    {
+        case 'S':
+        {   
+            while(!verificador(andar) || !verificador(destino))
+            {
+                printf("Em qual andar o elevador está sendo chamado e qual o destino? (0 a 300) ");
+                scanf("%d %d", &andar, &destino);
+            }
+            for(int j = 0; j < tot_elevadores; j++)
+            {
+                if(elevadores[j].id == menor_distancia(elevadores, andar)->id)
+                {
+                    k = j;
+                }
+            }
+            movimento(elevadores, k, andar, destino, 0);
         }
-        eleva[index].andar ++;
-        distancia++;
-        printador(eleva);
-        printf ("Tem outro chamado?(S/N) ");
-        scanf(" %c", &opcao);
-        switch(opcao)
+        break;
+        case 'N':
         {
-            case 'S':
-                printf("Para onde? ");
-                scanf("%d", &novo);
-                break;
-            case 'N':
-                break;
-            default:
-                printf("Opção inválida!\n");
-                break;
+            printador(elevadores);
+            return;
         }
-        destino(eleva, index, andar, distancia, novo, chegou, come);
+        default:
+        {
+            printf("Opção inválida, por favor insira apenas S ou N\n");
+            return entrada(elevadores);
+        }
     }
 }
 
@@ -217,55 +240,6 @@ int main()
     inicializar(elevadores);
     printf("Este é o prédio de 300 andares. Cada letra simboliza um ID de um elevador. Eis o prédio:\n");
     printador(elevadores);
-    int andar = 0, corredor = 0;
-    while(andar >= 0 && corredor >= 0)
-    {
-        printf("Selecione o andar e o corredor que desejam chamar um elevador, respectivamente, caso queira finalizar o programa, escreva um dos dois como números negativos: ");
-        scanf("%d %d", &andar, &corredor);
-        if (andar >= 0 && corredor >= 0)
-        {
-            if (verificador(andar, corredor))
-            {
-                printf("Procedimento bem sucedido! O Elevador %c percorreu %d m de distância para atender o chamado! Agora o prédio está assim:\n", menor_distancia(elevadores, andar, corredor)->id, menor_distancia(elevadores, andar, corredor)->distancia);
-                int k;
-                for(int j = 0; j < tot_elevadores; j++)
-                {
-                    if(elevadores[j].id == menor_distancia(elevadores, andar, corredor)->id)
-                    {
-                        k = j;
-                        elevadores[j].andar = menor_distancia(elevadores, andar, corredor)->andar;
-                        elevadores[j].corredor = menor_distancia(elevadores, andar, corredor)->corredor;
-                    }
-                }
-                printador(elevadores);
-                printf("Para que andar deseja ir? ");
-                while (tem_elevador(elevadores, andar, corredor))
-                {
-                    scanf("%d", &andar);
-                }
-                if (andar >= 0)
-                {
-                    if (verificador(andar, corredor))
-                    {
-                        printf("Procedimento bem sucedido! O Elevador %c percorreu %d m de distância para atender o chamado! Agora o prédio está assim:\n", elevadores[k].id, destino(elevadores, k, andar, 0, -1, 0, 0)->distancia);
-                        elevadores[k].andar = destino(elevadores, k, andar, 0, -1, 0, 0)->andar;
-                        elevadores[k].corredor = destino(elevadores, k, andar, 0, -1, 0, 0)->corredor;
-                        printador(elevadores);
-                    }
-                    else
-                    {
-                        printf("Algum dos números é inválido. Lembre-se que o prédio tem somente 300 andares(insira apenas um número entre 0 e 300 para o andar) e 3 corredores (insira um número entre 0 e 2 para o corredor). Por favor, tente novamente!\n"); 
-                    }
-                }
-            }
-            else 
-            {
-                printf("Algum dos números é inválido. Lembre-se que o prédio tem somente 300 andares(insira apenas um número entre 0 e 300 para o andar) e 3 corredores (insira um número entre 0 e 2 para o corredor). Por favor, tente novamente!\n");
-            }
-            printf("Agora, o elevador irá retornar para sua posição inicial:\n");
-            inicializar(elevadores);
-            printador(elevadores);
-        }
-    }
+    entrada(elevadores);
     return 0;
 }
