@@ -1,20 +1,28 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define MAX_SIZE 10
 
 int particiona(int * vetor, int inicio, int fim)
 {
-    int esquerda, direita, pivot, aux;
+    int esquerda, direita, pivot, aux, index;
     esquerda = inicio;
     direita = fim;
-    pivot = vetor[inicio];
+
+    srand(time(NULL));
+
+    index =  rand() % (fim - inicio + 1) + inicio;
+
+    pivot = vetor[index];
+
     while (esquerda < direita)
     {
-        while(vetor[esquerda] <= pivot)
+        while(vetor[esquerda] <= pivot && esquerda < fim)
         {
             esquerda ++;
         }
-        while(vetor[direita] > pivot)
+        while(vetor[direita] > pivot && direita > inicio)
         {
             direita --;
         }
