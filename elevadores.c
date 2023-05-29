@@ -104,13 +104,16 @@ Elevador * menor_distancia (Elevador * elevadores, int andar)
     int k;
     for (int i = 0; i < tot_elevadores; i++)
     {
-        if(elevadores[i].andar < andar && elevadores[i].estado == DESCENDO)
+        if(elevadores[i].estado != PARADO)
         {
-            i ++;
-        }
-        else if(elevadores[i].andar > andar && elevadores[i].estado == SUBINDO)
-        {
-            i++;
+            if(i == (tot_elevadores - 1))
+            {
+                return elevadores + k;
+            }
+            else 
+            {
+                continue;
+            }
         }
 
         distancia = abs(andar - elevadores[i].andar);
