@@ -305,6 +305,8 @@ void entrada(Elevador * elevadores)
                     scanf("%d %d", &andar, &destino);
                 }
                 lista = inserir(lista, elevadores, andar, destino);
+                conferidor_lista(elevadores, lista);
+                printador(elevadores);
                 break;
             }
             default:
