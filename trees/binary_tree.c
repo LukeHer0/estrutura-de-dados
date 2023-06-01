@@ -4,37 +4,62 @@
 typedef struct No
 {
     int chave;
-    struct No * esq;
-    struct No * dir;
+    No * son;
+    No * bro;
 }No;
 
-No * initialize()
+No * novoNo (int chave)
 {
-    return malloc(sizeof(No));
+    No * novo = (No*)malloc(sizeof(No));
+    novo->son = NULL;
+    novo->bro = NULL;
+    novo->chave = chave;
+    return novo;
 }
 
-No * inserir (No * tree, int chave)
+No * inicializa (int chave)
 {
-    if (tree == NULL)
+    return novoNo(chave);
+}
+
+void printador (No * tree)
+{
+    if(tree == NULL)
     {
-        tree = initialize();
-        tree->chave = chave;
-        tree->esq = NULL;
-        tree->dir = NULL;
-        return tree;
+        return;
+    }
+    printf("%d(", tree->chave);
+    No * p = tree->son;
+    while (p)
+    {
+        printador(p);
+        p = p->bro;
+    }
+    printf(")");
+}
+
+int inserir (No * tree, int chave, int pai)
+{
+    No * father = busca(pai, tree);
+    if(!father)
+    {
+        return 0;
+    }
+    No * filho = novoNo(chave);
+    No * p = father->son;
+    if(!p)
+    {
+        father->son = filho;
     }
     else 
     {
-        if (chave > tree->chave)
+        while(p->bro)
         {
-            tree->dir = inserir(tree->dir, chave);
+            p = p->bro;
+            p->bro = filho;
         }
-        else if (chave < tree->chave)
-        {
-            tree->esq = inserir(tree->esq, chave);
-        }
-        return tree;
     }
+    return 1;
 }
 
 No * busca (No * tree, int chave)
@@ -43,128 +68,41 @@ No * busca (No * tree, int chave)
     {
         return NULL;
     }
-    if (tree->chave == chave)
+    if(tree->chave == chave)
     {
         return tree;
     }
-    else if(chave > tree->chave)
+    No * p = tree->son;
+    while (p)
     {
-        busca(tree->dir, chave);
-    }
-    else if (chave < tree->chave)
-    {
-        busca(tree->esq, chave);
-    }
-}
-
-int contagem (No * tree)
-{
-    if(tree == NULL)
-    {
-        return 0;
-    }
-    return contagem(tree->esq) + 1 + contagem(tree->dir);
-    }
-
-void printador(No * tree)
-{
-    if(tree != NULL)
-    {
-        printf("%d", tree->chave);
-        printf("(");
-        printador(tree->esq);
-        printador(tree->dir);
-        printf(")");
-    }
-}
-
-No * busca_aux (No * raiz, int chave, No ** pai)
-{
-    No * atual = raiz;
-    *pai = NULL;
-    while(atual)
-    {
-        if (atual->chave == chave)
+        No * resp = busca(chave, p);
+        if(resp)
         {
-            return (atual);
+            return resp;
         }
-        *pai = atual;
-        if(chave < atual->chave)
-        {
-            atual = atual->esq;
-        }
-        else 
-        {
-            atual = atual->dir;
-        }
+        p = p->bro;
     }
-    return (NULL);
+    return NULL;
 }
 
 No * remover (No * tree, int chave)
 {
-    No * pai;
-    No * no; 
-    No * p;
-    No * q;
-    no = busca_aux(tree, chave, &pai);
-    if(no == NULL)
+    if(tree == NULL)
     {
         return tree;
     }
-    if (!no->esq || !no->dir)
-    {
-        if(!no->esq)
-        {
-            q = no->dir;
-        }
-        else 
-        {
-            q = no->esq;
-        }
-    }
-    else
-    {
-        p = no;
-        q = no->esq;
-        while (q->dir)
-        {
-            p = q;
-            q = q->dir;
-        }
-        if (p != no)
-        {
-            p->dir = q->esq;
-            q->esq = no->esq;
-        }
-        q->dir = no->dir;
-    }
-    if (!pai)
-    {
-        free(no);
-        return q;
-    }
-    if (chave < pai->chave)
-    {
-        pai->esq = q;
-    }
-    else 
-    {
-        pai->dir = q;
-    }
-    free(no);
-    return tree;
 }
 
 int main()
 {
-    No * tree = NULL;
-    int i = 0;
-    int chave;
-    int opcao;
-    while(1)
+    No * tree;
+    int chave, opcao, pai;
+    printf("Insira o primeiro elemento da árvore: ");
+    scanf("%d", &chave);
+    tree = inicializa(chave);
+    while (1)
     {
-        printf("O que deseja fazer?\n\t0 - Inserir\n\t1 - Buscar\n\t2 - Contagem\n\t3 - Remover\n");
+        printf("O que deseja fazer?\n\t0 - Inserir\n\t1 - Buscar\n\t2 - Remover\n");
         scanf("%d", &opcao);
         switch (opcao)
         {
@@ -172,7 +110,9 @@ int main()
             {
                 printf("Insira um nó: ");
                 scanf("%d", &chave);
-                tree = inserir(tree, chave);
+                printf("Filho de quem? ");
+                scanf("%d", &pai);
+                tree = inserir(tree, chave, pai);
                 printador(tree);
                 printf("\n");
                 break;
@@ -187,15 +127,9 @@ int main()
             }
             case 2:
             {
-                printf("A árvore possui %d nós!\n", contagem(tree));
-                break;
-            }
-            case 3:
-            {
                 printf("Qual nó você deseja remover? ");
                 scanf("%d", &chave);
-                remover(tree, chave);
-                printador(tree);
+                printador(remover(tree, chave));
                 printf("\n");
                 break;
             }
