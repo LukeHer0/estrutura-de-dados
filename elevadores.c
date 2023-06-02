@@ -36,7 +36,8 @@ typedef struct Chamadas
     struct Chamadas * prox;
 }Chamadas;
 
-void entrada(Elevador * elevadores);
+int contador = 0;
+int movimento(Direcao * direcao, Elevador ** elevador, int andar, int destino, Elevador todos[]);
 
 void inicializar (Elevador * elevadores)
 {
@@ -51,7 +52,6 @@ void inicializar (Elevador * elevadores)
 
 void printador(Elevador * elevadores)
 {
-    char predio [andares][corredores];
     int subtrator = 0;
     for(int i = andares; i >= 0 ; i--)
     {
@@ -81,19 +81,29 @@ void printador(Elevador * elevadores)
 
 int verificador(int andar)
 {
-    if(andar < 0 || andar > 300)
+    if(andar < 0 || andar > andares)
     {
         return 0;
     }
     return 1;
 }
 
+void displayElevadores(Elevador * elevadores)
+{
+    //Display da situação atual dos elevadores
+    for (int i = 0; i < tot_elevadores; i++){
+        printf("Elevador %c: Andar: %d Corredor: %d Estado: %s\n", elevadores[i].id ,elevadores[i].andar, elevadores[i].corredor+1, elevadores[i].estado == PARADO?"PARADO":"MOVIMENTO");
+    }
+    puts("");
+}
+
 void printa_lista (Chamadas * lista)
 {
-    while (lista != NULL)
+    Chamadas * aux = lista;
+    while (aux != NULL)
     {
-        printf("%d %d\n", lista->andar, lista->destino);
-        lista = lista->prox;
+        printf("%d %d\n", aux->andar, aux->destino);
+        aux = aux->prox;
     }
 }
 
@@ -104,24 +114,15 @@ Elevador * menor_distancia (Elevador * elevadores, int andar)
     int k;
     for (int i = 0; i < tot_elevadores; i++)
     {
-        if(elevadores[i].estado != PARADO)
+        if(elevadores[i].estado == PARADO)
         {
-            if(i == (tot_elevadores - 1))
-            {
-                return elevadores + k;
-            }
-            else 
-            {
-                continue;
-            }
-        }
+            distancia = abs(andar - elevadores[i].andar);
 
-        distancia = abs(andar - elevadores[i].andar);
-
-        if(distancia < menor)
-        {
-            menor = distancia;
-            k = i;
+            if(distancia < menor)
+            {
+                menor = distancia;
+                k = i;
+            }
         }
     }
     return elevadores + k;
@@ -146,6 +147,7 @@ Chamadas * aloca_espaco()
 
 Chamadas * inserir (Chamadas * lista, Elevador * elevadores, int andar, int destino)
 {
+    contador++;
     Chamadas * aux = aloca_espaco();
     Chamadas * percorre = lista;
     if (!lista)
@@ -173,8 +175,38 @@ Chamadas * inserir (Chamadas * lista, Elevador * elevadores, int andar, int dest
     return lista;
 }
 
+Chamadas * inserir_espera (Chamadas * lista, Elevador * elevadores, int andar, int destino)
+{
+    Chamadas * aux = aloca_espaco();
+    Chamadas * percorre = lista;
+    if (!lista)
+    {
+        lista = aux;
+        lista->andar = andar;
+        lista->destino = destino;
+        lista->elevador = NULL;
+        lista->direcao = INDO;
+        lista->prox = NULL;
+    }
+    else
+    {
+        while(percorre->prox != NULL)
+        {
+            percorre = percorre->prox;
+        }
+        aux->andar = andar;
+        aux->destino = destino;
+        aux->elevador = NULL;
+        aux->direcao = INDO;
+        aux->prox = NULL;
+        percorre->prox = aux;
+    }
+    return lista;
+}
+
 Chamadas * remover (Chamadas * lista, Chamadas * alvo)
 {
+    contador --;
     Chamadas * aux = lista;
     Chamadas * aux2 = NULL;
     if(lista == NULL)
@@ -200,102 +232,238 @@ Chamadas * remover (Chamadas * lista, Chamadas * alvo)
     }
 }
 
-int movimento(Direcao * direcao, Elevador * elevadores, int andar, int destino, Elevador * todos)
+Chamadas * inclusor (Chamadas * lista, Chamadas ** espera, Elevador * elevadores)
+{
+    contador++;
+    Chamadas * aux = lista;
+    while(aux->prox)
+    {
+        aux = aux->prox;
+    }
+    aux->prox = aloca_espaco();
+    aux->prox->andar = (*espera)->andar;
+    aux->prox->destino = (*espera)->destino;
+    aux->prox->direcao = (*espera)->direcao;
+    aux->prox->elevador = menor_distancia(elevadores, (*espera)->andar);
+    aux->prox->prox = NULL;
+
+    Chamadas * aux2 = (*espera);
+    (*espera) = (*espera)->prox;
+    free(aux2);
+
+    return lista;
+}
+
+int tem_parado (Elevador * elevadores)
+{
+    for(int i = 0; i < tot_elevadores; i++)
+    {
+        if(elevadores[i].estado == PARADO)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int caminho_livre(Elevador * elevadores, int andar, int corredor)
+{
+    int a[] = {0, 1, 2};
+    int b[] = {0,0,0};
+    for(int i = 0; i < tot_elevadores; i++)
+    {
+        if(elevadores[i].andar == andar)
+        {
+            for(int j = 0; j < corredores; j++)
+            {
+                if(elevadores[i].corredor == a[j])
+                {
+                    b[j] = 1;
+                }
+            }
+        }
+    }
+    for(int k = 0; k < 3; k++)
+    {
+        if(b[k] == 0)
+        {
+            return k > corredor;
+        }
+    }
+    return -1;
+}
+
+void procura_bloqueio(Elevador * elevadores)
+{
+    int p;
+    Direcao temporario = INDO;
+    for(int i = 0; i <= andares; i++)
+    {
+        int contador = 0;
+        for(int j = 0; j < corredores; j++)
+        {
+            for(int k = 0; k < tot_elevadores; k++)
+            {
+                if(elevadores[k].andar == i && elevadores[k].corredor == j && elevadores[k].estado == PARADO)
+                {
+                    contador ++;
+                    p = k;
+                }
+            }
+        }
+        if(contador == 3) 
+        {
+            if(elevadores[p].andar >= andares/2)
+            {
+                Elevador * aux = &(elevadores[p]); 
+                movimento(&temporario, &(aux), ((*(elevadores + p)).andar) - 2, -1, elevadores);
+                movimento(&temporario, &(aux), ((*(elevadores + p)).andar) - 2, -1, elevadores);
+            }
+            else
+            {
+                Elevador * aux = &(elevadores[p]); 
+                movimento(&temporario, &(aux), ((*(elevadores + p)).andar) + 2, -1, elevadores);
+                movimento(&temporario, &(aux), ((*(elevadores + p)).andar) + 2, -1, elevadores);
+            }
+            elevadores[p].estado = PARADO;
+        }
+    }
+}
+
+int movimento(Direcao * direcao, Elevador ** elevador, int andar, int destino, Elevador todos[])
 {
     if(*direcao == INDO)
     {
-        if(elevadores->andar == andar)
+        if((*elevador)->andar == andar)
         {
             *direcao = LEVANDO;
-            printf("O elevador %c chegou no andar %d!\n", elevadores->id, elevadores->andar);
+            printf("\nO elevador %c chegou no andar %d!\n\n", (*elevador)->id, (*elevador)->andar);
         }
-        else if(elevadores->andar > andar)
+        else if((*elevador)->andar > andar)
         {
-            elevadores->andar --;
-            elevadores->estado = DESCENDO;
+            if(tem_elevador(todos, ((*elevador)->andar - 1), (*elevador)->corredor) && (*elevador)->estado == DESCENDO)
+            {
+                if(caminho_livre(todos, (*elevador)->andar - 1, (*elevador)->corredor))
+                {
+                    (*elevador)->corredor++;
+                }
+                else
+                {
+                    (*elevador)->corredor--;
+                }
+                return 0;
+            }
+            (*elevador)->andar --;
+            (*elevador)->estado = DESCENDO;
         }
-        else if (elevadores->andar < andar)
+        else if ((*elevador)->andar < andar)
         {
-            elevadores->andar ++;
-            elevadores->estado = SUBINDO;
+            if(tem_elevador(todos, ((*elevador)->andar + 1), (*elevador)->corredor) && (*elevador)->estado == SUBINDO)
+            {
+                if(caminho_livre(todos, (*elevador)->andar + 1, (*elevador)->corredor))
+                {
+                    (*elevador)->corredor++;
+                }
+                else
+                {
+                    (*elevador)->corredor--;
+                }
+                return 0;
+            }
+            (*elevador)->andar ++;
+            (*elevador)->estado = SUBINDO;
         }
     }
     else if(*direcao == LEVANDO)
     {
-        if(tem_elevador(todos, (elevadores->andar + 1), elevadores->corredor) && elevadores->estado == SUBINDO)
+        if((*elevador)->andar == destino)
         {
-            if(elevadores->corredor != 2)
-            {
-                elevadores->corredor = (elevadores->corredor + 1) % 3;
-            }
-            else 
-            {
-                elevadores->corredor = (elevadores->corredor - 1) % 3;
-            }
-            return 0;
-        }
-        if(tem_elevador(todos, (elevadores->andar - 1), elevadores->corredor) && elevadores->estado == DESCENDO)
-        {
-            if(elevadores->corredor != 0)
-            {
-                elevadores->corredor = (elevadores->corredor - 1) % 3;
-            }
-            else 
-            {
-                elevadores->corredor = 1;
-            }
-            return 0;
-        }
-        if(elevadores->andar == destino)
-        {
-            elevadores->estado = PARADO;
-            printf("%d %d\n", elevadores->andar, elevadores->corredor);
+            (*elevador)->estado = PARADO;
+            printf("\nO elevador %c chegou ao seu destino no andar %d!\n\n", (*elevador)->id, (*elevador)->andar);
             return 1;
         }
-        else if(elevadores->andar > destino)
+        else if((*elevador)->andar > destino)
         {
-            elevadores->andar --;
-            elevadores->estado = DESCENDO;
+            if(tem_elevador(todos, ((*elevador)->andar - 1), (*elevador)->corredor) && (*elevador)->estado == DESCENDO)
+            {
+                if(caminho_livre(todos, (*elevador)->andar - 1, (*elevador)->corredor))
+                {
+                    (*elevador)->corredor++;
+                }
+                else
+                {
+                    (*elevador)->corredor--;
+                }
+                return 0;
+            }
+            (*elevador)->andar --;
+            (*elevador)->estado = DESCENDO;
         }
-        else if(elevadores->andar < destino)
+        else if((*elevador)->andar < destino)
         {
-            elevadores->andar ++;
-            elevadores->estado = SUBINDO;
+            if(tem_elevador(todos, ((*elevador)->andar + 1), (*elevador)->corredor) && (*elevador)->estado == SUBINDO)
+            {
+                if(caminho_livre(todos, (*elevador)->andar + 1, (*elevador)->corredor))
+                {
+                    (*elevador)->corredor++;
+                }
+                else
+                {
+                    (*elevador)->corredor--;
+                }
+                return 0;
+            }
+            (*elevador)->andar ++;
+            (*elevador)->estado = SUBINDO;
         }
         
     }
     return 0;
 }
 
-void conferidor_lista (Elevador * elevadores, Chamadas * lista)
+Chamadas * conferidor_lista (Elevador * elevadores, Chamadas * lista)
 {
     Chamadas * percorre = lista;
     Chamadas * aux = NULL;
+    procura_bloqueio(elevadores);
     if(lista == NULL)
     {
-        return;
+        return NULL;
     }
     else 
     {
         while (percorre != NULL)
         {
-            aux = percorre->prox;
-            if (movimento(&(percorre->direcao), percorre->elevador, percorre->andar, percorre->destino, elevadores))
+            if (movimento(&(percorre->direcao), &(percorre->elevador), percorre->andar, percorre->destino, elevadores))
             {
                 lista = remover(lista, percorre);
             }
-            percorre = aux;
+            percorre = percorre->prox;
         }
     }
+    return lista;
+}
+
+int tamanho (Chamadas * lista)
+{
+    Chamadas * aux = lista;
+    int i = 0;
+    while (aux)
+    {
+        i++;
+        aux = aux->prox;
+    }
+    return i;
 }
 
 void entrada(Elevador * elevadores)
 {
     char opcao;
     Chamadas * lista = NULL;
+    Chamadas * espera = NULL;
     while (1)
     {
-        printf("Tem chamado?(S/Outra letra) ");
+        printf("Tem chamado?(S/P/Outra letra) ");
         scanf(" %c", &opcao);
         int andar = -1, destino = -1;
         switch(opcao)
@@ -307,15 +475,43 @@ void entrada(Elevador * elevadores)
                     printf("Em qual andar o elevador está sendo chamado e qual o destino? (0 a 300) ");
                     scanf("%d %d", &andar, &destino);
                 }
-                lista = inserir(lista, elevadores, andar, destino);
-                conferidor_lista(elevadores, lista);
+                if (espera != NULL && tamanho(lista) < tot_elevadores)
+                {
+                    lista = inclusor(lista, &espera, elevadores);
+                    espera = inserir_espera(espera, elevadores, andar, destino);
+                }
+                else if(tamanho(lista) < tot_elevadores)
+                {
+                    lista = inserir(lista, elevadores, andar, destino);
+                }
+                else 
+                {
+                    espera = inserir_espera(espera, elevadores, andar, destino);
+                }
+                lista = conferidor_lista(elevadores, lista);
+                displayElevadores(elevadores);
+                break;
+            }
+            case 'P':
+            {
+                lista = conferidor_lista(elevadores, lista);
                 printador(elevadores);
                 break;
             }
+            case 'L':
+                printa_lista(lista);
+                break;
+            case 'E':
+                printa_lista(espera);
+                break;
             default:
             {
-                conferidor_lista(elevadores, lista);
-                printador(elevadores);
+                if (espera != NULL && tamanho(lista) < tot_elevadores)
+                {
+                    lista = inclusor(lista, &espera, elevadores);
+                }
+                lista = conferidor_lista(elevadores, lista);
+                displayElevadores(elevadores);
                 break;
             }
         }
